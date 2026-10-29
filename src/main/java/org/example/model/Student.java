@@ -1,10 +1,24 @@
 package org.example.model;
 
 public class Student {
-    private Long id;
+
     private String name;
     private String email;
     private int age;
+    private Long id;
+
+
+
+    public Student(){}
+
+
+
+    public Student(String name, String email, int age) {
+        this.name = name;
+        this.email = email;
+        this.age = age;
+    }
+
 
 
     public Long getId() {
@@ -45,7 +59,7 @@ public class Student {
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", email='" + email + '\'' +
-                ", age=" + age +
+               ", age=" + age +
                 '}';
     }
 }
