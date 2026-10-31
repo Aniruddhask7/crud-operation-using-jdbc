@@ -1,228 +1,124 @@
+
 package org.example.repositery;
 
 import org.example.model.Student;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
+import org.example.exception.EmailAlreadyExistException;
+import org.springframework.dao.DuplicateKeyException;
 
-import java.sql.*;
+import java.util.List;
 
+@Repository
 public class StudentRepository {
 
-    String url = "jdbc:oracle:thin:@localhost:1521:xe";
-    String user =  "hr";
-    String pass = "pass";
+    private final JdbcTemplate jdbcTemplate;
 
-    public void createStudentUser(Student student){
-
-        String data = """
-        INSERT INTO crudstudentEx11 (id, name, email, age)
-        VALUES (?, ?, ?, ?)
-        """;
-
-        try(
-                Connection con = DriverManager.getConnection(url , user , pass);
-
-                PreparedStatement preparedStmt = con.prepareStatement(data);
-                ){
-
-            preparedStmt.setLong(1, student.getId());
-            preparedStmt.setString(2, student.getName());
-            preparedStmt.setString(3, student.getEmail());
-            preparedStmt.setInt(4, student.getAge());
-
-            int rowAffected = preparedStmt.executeUpdate();
-
-            if (rowAffected > 0) {
-                System.out.println("Data Inserted Successfully");
-            } else {
-                System.out.println("Something went wrong");
-            }
-
-            preparedStmt.close();
-            con.close();
-
-        }catch(SQLException e){
-            System.out.println("Database Connection Failed");
-            e.printStackTrace();
-        }
+    public StudentRepository(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
     }
 
 
-    public void updateStudentUser(Student student , Long id){
+    // Map database row to Student object
+    private final RowMapper<Student> studentRowMapper = (rs, rowNum) -> {
+        Student student = new Student();
 
-        String sql = """
-                             Update crudstudentEx11
-                             set name=?,
-                                 email=?,
-                                 age=?
-                             where id=?
-                        """;
-        try(
-                Connection con = DriverManager.getConnection(url , user , pass);
+        student.setId(rs.getLong("id"));
+        student.setName(rs.getString("name"));
+        student.setEmail(rs.getString("email"));
+        student.setAge(rs.getInt("age"));
 
-                PreparedStatement preparedStmt = con.prepareStatement(sql);
-                ){
+        return student;
+    };
 
+    // CREATE
+    public void createStudentUser(Student student) {
 
-            preparedStmt.setString(1, student.getName());
-            preparedStmt.setString(2, student.getEmail());
-            preparedStmt.setInt(3, student.getAge());
-            preparedStmt.setInt(4, Math.toIntExact(id));
-
-
-            int result2 = preparedStmt.executeUpdate();
-
-
-
-
-            if(result2 ==1){
-                System.out.println("row upadted succesfully");
-            }else{
-                System.out.println("row not updated");
-            }
-
-        }catch(SQLException e){
-            System.out.println("Database Connection Failed");
-            e.printStackTrace();
-        }
-
-
-    }
-
-
-    public void deleteStudentUser(Long id){
-
-        String sql = """
-                      delete from crudstudentEx11 where  id = ?
-                      """;
-
-        try(Connection con = DriverManager.getConnection(url , user , pass);
-
-            PreparedStatement  prepStmt = con.prepareStatement(sql);
-            ){
-
-            prepStmt.setLong(1,id);
-
-            int rowAffected = prepStmt.executeUpdate(sql);
-
-            if(rowAffected ==1){
-                System.out.println("row deleted successfully");
-            }else{
-                System.out.println("row not deleted");
-            }
-
-        }catch(SQLException e){
-            System.out.println("Database Connection Failed");
-            e.printStackTrace();
-        }
-
-    }
-
-
-
-    public void getStudentUser(Long id) {
-
-        String sql = """
-            SELECT id, name, email, age
-            FROM crudstudentEx11
-            WHERE id = ?
-            """;
-
-        try (
-                Connection con = DriverManager.getConnection(url, user, pass);
-                PreparedStatement preStmt = con.prepareStatement(sql)
-        ) {
-
-            preStmt.setLong(1, id);
-
-            try (ResultSet result = preStmt.executeQuery()) {
-
-                if (result.next()) {
-                    Student student = mapRow(result);
-                    System.out.println(student);
-                } else {
-                    System.out.println("Student not found with ID: " + id);
-                }
-            }
-
-        } catch (SQLException e) {
-            System.out.println("Data not fetched");
-            e.printStackTrace();
-        }
-    }
-
-
-
-
-    public void completCRUD(){
         try{
-            Connection con = DriverManager.getConnection(url , user , pass);
+            String sql = """
+                INSERT INTO crudstudentEx11 (id, name, email, age)
+                VALUES (?, ?, ?, ?)
+                """;
 
-            Statement statement = con.createStatement();
-
-
-            String sql = "Select id,name,email,age " +
-                    "from crudstudentEx11 where id = 15 ";
-
-            boolean result = statement.execute(sql);
-
-            if(result){
-                ResultSet resultset = statement.getResultSet();
-                 System.out.println(resultset);
-            }else{
-                int rowAffected = statement.getUpdateCount();
-                System.out.println(rowAffected);
-            }
-
-
-
-            System.out.println("Data Successfully fetched");
-
-            con.close();
-
-        }catch(SQLException e){
-            System.out.println("Data Not fetched");
-            e.printStackTrace();
+            jdbcTemplate.update(
+                    sql,
+                    student.getId(),
+                    student.getName(),
+                    student.getEmail(),
+                    student.getAge()
+            );
+        }catch (EmailAlreadyExistException e) {
+            throw new EmailAlreadyExistException("Email already exists "+student.getEmail());
         }
 
     }
 
+    // READ ALL
+    public List<Student> getStudent() {
 
+        String sql = """
+                SELECT id, name, email, age
+                FROM crudstudentEx11
+                ORDER BY id
+                """;
 
-    private Student mapRow(ResultSet result) throws SQLException {
-        Student student  = new Student();
-
-        student.setId(result.getLong("id"));
-        student.setAge(result.getInt("Age"));
-        student.setEmail(result.getString("Email"));
-        student.setName(result.getString("Name"));
-
-        return   student;
+        return jdbcTemplate.query(sql, studentRowMapper);
     }
 
+    // READ BY ID
+    public Student getStudentUser(Long id) {
+
+        String sql = """
+                SELECT id, name, email, age
+                FROM crudstudentEx11
+                WHERE id = ?
+                """;
+
+        List<Student> students =
+                jdbcTemplate.query(sql, studentRowMapper, id);
+
+        return students.isEmpty() ? null : students.get(0);
+    }
+
+    // UPDATE
+    public void updateStudent(Student student, Long id) {
+
+        String sql = """
+                UPDATE crudstudentEx11
+                SET name = ?, email = ?, age = ?
+                WHERE id = ?
+                """;
+
+        int rowsAffected = jdbcTemplate.update(
+                sql,
+                student.getName(),
+                student.getEmail(),
+                student.getAge(),
+                id
+        );
+
+        if (rowsAffected > 0) {
+            System.out.println("Student updated successfully");
+        } else {
+            System.out.println("Student not found with ID: " + id);
+        }
+    }
+
+    // DELETE
+    public void deleteStudentUser(Long id) {
+
+        String sql = """
+                DELETE FROM crudstudentEx11
+                WHERE id = ?
+                """;
+
+        int rowsAffected = jdbcTemplate.update(sql, id);
+
+        if (rowsAffected > 0) {
+            System.out.println("Student deleted successfully");
+        } else {
+            System.out.println("Student not found with ID: " + id);
+        }
+    }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//            String table = "CREATE TABLE crudstudentEx11 ("
-//                    + "id NUMBER PRIMARY KEY, "
-//                    + "name VARCHAR2(100) NOT NULL, "
-//                    + "email VARCHAR2(100) UNIQUE, "
-//                    + "age NUMBER(3)"
-//                    + ")";
-//
-//
-//            int result1 = statement.executeUpdate(table);
-//            System.out.println(result1);

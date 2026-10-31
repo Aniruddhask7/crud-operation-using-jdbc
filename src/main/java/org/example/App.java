@@ -19,10 +19,10 @@ import java.sql.SQLException;
 
     public static void main(String[] args) {
 
-
-        StudentRepository studrepo = new StudentRepository();
+        SpringApplication.run(App.class, args);
+    //    StudentRepository studrepo = new StudentRepository();
          // studrepo.createStudentUser(new Student(42L, "vaibjav" , "vaibhav@gmail.com",73));
-        studrepo.updateStudentUser(new Student("Arjun" , "arj@gmail.com" , 19),8L);
+      //  studrepo.updateStudentUser(new Student("Arjun" , "arj@gmail.com" , 19),8L);
        // studrepo.deleteStudentUser();
         //studrepo.getUser();
         //studrepo.completCRUD();
